@@ -8,3 +8,6 @@
 4.教程视频:https://www.bilibili.com/video/BV1LrjB62EZT/
 
 5.参考项目:https://github.com/tumuyan/video-shuffler-for-aegisub
+
+<img width="871" height="395" alt="image" src="https://github.com/user-attachments/assets/58fd94d8-8cf7-48cb-af11-15a57e5dfeb5" />
+
