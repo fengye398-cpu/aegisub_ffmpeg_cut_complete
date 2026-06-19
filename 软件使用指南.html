@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aegisub 字幕切割导出工具 - 使用指南</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .presentation {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .slide {
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 100px 60px 60px 60px;
+            background: white;
+            position: absolute;
+            top: 0;
+            left: 0;
+            overflow-y: auto;
+        }
+
+        .slide.active {
+            display: flex;
+            animation: slideIn 0.5s ease-in-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* 封面样式 */
+        .slide.cover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            justify-content: center;
+            padding: 60px;
+        }
+
+        .slide.cover h1 {
+            font-size: 3.5em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .slide.cover p {
+            font-size: 1.5em;
+            opacity: 0.9;
+        }
+
+        /* 内容页样式 */
+        .slide h2 {
+            font-size: 2.5em;
+            color: #667eea;
+            margin-bottom: 40px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .content {
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .step-box {
+            background: #f8f9fa;
+            border-left: 5px solid #667eea;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .step-box h3 {
+            color: #764ba2;
+            font-size: 1.8em;
+            margin-bottom: 15px;
+        }
+
+        .step-box p, .step-box li {
+            font-size: 1.2em;
+            line-height: 1.8;
+            color: #333;
+        }
+
+        .step-box ul {
+            margin-left: 30px;
+            margin-top: 10px;
+        }
+
+        .step-box li {
+            margin: 8px 0;
+        }
+
+        .code-box {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 5px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 1.1em;
+            margin: 15px 0;
+            overflow-x: auto;
+            white-space: pre;
+            line-height: 1.6;
+        }
+
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-weight: bold;
+            color: #856404;
+        }
+
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .warning {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        /* 图标样式 */
+        .icon {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+
+        /* 导航按钮 */
+        .nav-buttons {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .nav-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0,0,0,0.3);
+        }
+
+        .nav-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 页码指示器 */
+        .page-indicator {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #667eea;
+            font-size: 1.2em;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* 目录按钮 */
+        .toc-btn {
+            position: fixed;
+            top: 30px;
+            left: 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s, opacity 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            z-index: 1001;
+        }
+
+        .toc-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0,0,0,0.3);
+        }
+
+        /* 目录面板 */
+        .toc-panel {
+            position: fixed;
+            top: 0;
+            left: -400px;
+            width: 400px;
+            height: 100vh;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+            transition: left 0.3s ease-in-out;
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 80px 30px 30px 30px;
+        }
+
+        .toc-panel.active {
+            left: 0;
+        }
+
+        .toc-panel h3 {
+            color: #667eea;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .toc-item {
+            padding: 12px 15px;
+            margin: 8px 0;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 5px;
+        }
+
+        .toc-item:hover {
+            background: #667eea;
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .toc-item.current {
+            background: #764ba2;
+            color: white;
+        }
+
+        .toc-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 2em;
+            color: #667eea;
+            cursor: pointer;
+            padding: 5px 15px;
+        }
+
+        .toc-close:hover {
+            color: #764ba2;
+        }
+
+        /* 目录遮罩层 */
+        .toc-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            z-index: 999;
+        }
+
+        .toc-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* 列表样式 */
+        .numbered-list {
+            counter-reset: item;
+            list-style: none;
+        }
+
+        .numbered-list li {
+            counter-increment: item;
+            margin: 15px 0;
+            position: relative;
+            padding-left: 40px;
+        }
+
+        .numbered-list li::before {
+            content: counter(item);
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            position: absolute;
+            left: 0;
+            top: 0;
+            font-weight: bold;
+        }
+
+        .img-placeholder {
+            background: #e9ecef;
+            border: 2px dashed #667eea;
+            padding: 40px;
+            text-align: center;
+            color: #667eea;
+            font-size: 1.1em;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        /* 特殊样式 */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .feature-card h4 {
+            color: #764ba2;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 1.1em;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .comparison-table th {
+            background: #667eea;
+            color: white;
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        <!-- 第1页：封面 -->
+        <div class="slide cover active">
+            <div class="icon">🎬</div>
+            <h1>Aegisub 字幕切割导出工具</h1>
+            <p>完整使用指南</p>
+            <p style="margin-top: 20px; font-size: 1.2em;">FFmpeg配置 + 软件使用教程</p>
+        </div>
+
+        <!-- 第2页：总目录 -->
+        <div class="slide">
+            <h2>📋 教程目录</h2>
+            <div class="content">
+                <div class="step-box">
+                    <h3>第一部分：环境准备</h3>
+                    <ol class="numbered-list">
+                        <li>FFmpeg 简介与作用</li>
+                        <li>下载安装 FFmpeg</li>
+                        <li>配置环境变量</li>
+                        <li>验证安装是否成功</li>
+                    </ol>
+                </div>
+                <div class="step-box">
+                    <h3>第二部分：软件使用</h3>
+                    <ol class="numbered-list">
+                        <li>脚本安装（重要！）</li>
+                        <li>软件功能介绍</li>
+                        <li>基本操作流程</li>
+                        <li>导出模式详解</li>
+                        <li>高级功能与技巧</li>
+                        <li>常见问题解答</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 第一部分：FFmpeg 配置 ==================== -->
+
+        <!-- 第3页：FFmpeg简介 -->
+        <div class="slide">
+            <h2>🎥 第一部分：FFmpeg 环境准备</h2>
+            <div class="content">
+                <div class="step-box">
+                    <h3>什么是 FFmpeg？</h3>
+                    <p>FFmpeg 是一个开源的音视频处理工具，本软件依赖它来完成：</p>
+                    <ul>
+                        <li>✅ 视频片段切割</li>
+                        <li>✅ 音频提取</li>
+                        <li>✅ 格式转换</li>
+                        <li>✅ 视频压缩和编码</li>
+                        <li>✅ 字幕嵌入</li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>为什么要配置环境变量？</h3>
+                    <p>配置后，本软件才能在<span class="highlight">任意位置</span>调用 FFmpeg 进行视频处理。</p>
+                    <p style="margin-top:10px;"><span class="warning">⚠️ 不配置环境变量，软件将无法正常工作！</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第4页：下载安装 -->
+        <div class="slide">
+            <h2>📥 下载 FFmpeg</h2>
+            <div class="content">
+                <div class="step-box">
+                    <h3>步骤 1：访问官网</h3>
+                    <p>打开浏览器，访问：<span class="highlight">https://ffmpeg.org/download.html</span></p>
+                </div>
+                <div class="step-box">
+                    <h3>步骤 2：选择 Windows 版本</h3>
+                    <ul>
+                        <li>点击 Windows 图标下的链接</li>
+                        <li>推荐选择 <span class="highlight">gyan.dev</span> 或 <span class="highlight">BtbN</span> 提供的版本</li>
+                        <li>下载 <span class="highlight">ffmpeg-release-full.7z</span></li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>步骤 3：解压文件</h3>
+                    <p>将下载的文件解压到合适位置，例如：</p>
+                    <div class="code-box">C:\Program Files\ffmpeg</div>
+                    <p style="margin-top:10px;">⚠️ <span class="warning">路径不要包含中文或特殊字符</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第5页：添加环境变量 - 方法1 -->
+        <div class="slide">
+            <h2>⚙️ 配置环境变量（图形界面方法）</h2>
+            <div class="content">
+                <div class="step-box">
+                    <h3>步骤 1：打开系统属性</h3>
+                    <ul>
+                        <li>右键点击 <span class="highlight">此电脑</span>（或"我的电脑"）</li>
+                        <li>选择 <span class="highlight">属性</span></li>
+                        <li>点击左侧 <span class="highlight">高级系统设置</span></li>
+                        <li>在"系统属性"窗口中，点击 <span class="highlight">环境变量</span> 按钮</li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>步骤 2：编辑 Path 变量</h3>
+                    <ul>
+                        <li>在"系统变量"区域找到 <span class="highlight">Path</span> 变量</li>
+                        <li>选中后点击 <span class="highlight">编辑</span></li>
+                        <li>点击 <span class="highlight">新建</span></li>
+                        <li>输入 FFmpeg 的 bin 目录路径：</li>
+                    </ul>
+                    <div class="code-box">C:\Program Files\ffmpeg\bin</div>
+                    <p style="margin-top:10px;">点击 <span class="highlight">确定</span> 保存所有窗口</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第6页：验证安装 -->
+        <div class="slide">
+            <h2>✅ 验证 FFmpeg 配置</h2>
+            <div class="content">
+                <div class="step-box">
+                    <h3>步骤 1：打开命令提示符</h3>
+                    <ul>
+                        <li>按 <span class="highlight">Win + R</span> 打开运行窗口</li>
+                        <li>输入 <span class="highlight">cmd</span> 并回车</li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>步骤 2：检查版本</h3>
+                    <p>在命令行中输入：</p>
+                    <div class="code-box">ffmpeg -version</div>
+                </div>
+                <div class="step-box">
+                    <h3>✅ 成功的输出示例</h3>
+                    <div class="code-box">ffmpeg version 6.0-full_build
+Copyright (c) 2000-2023 the FFmpeg developers
+...</div>
+                    <p style="margin-top:15px;"><span class="success">✓ 看到类似输出说明配置成功！</span></p>
+                </div>
+                <div class="step-box">
+                    <h3>❌ 失败的输出示例</h3>
+                    <div class="code-box">'ffmpeg' 不是内部或外部命令...</div>
+                    <p style="margin-top:15px;"><span class="warning">✗ 出现此错误说明配置失败，请重新检查路径</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 第二部分：软件使用 ==================== -->
+
+        <!-- 第7页：脚本安装说明 -->
+        <div class="slide">
+            <h2>📦 第二部分：脚本安装</h2>
+            <div class="content">
+                <div class="step-box">
+                    <h3>⚠️ 重要：脚本必须放在正确的位置</h3>
+                    <p>本软件是 Aegisub 的自动化脚本（.lua 文件），必须放在 Aegisub 的特定目录下才能被识别。</p>
+                </div>
+                <div class="step-box">
+                    <h3>步骤 1：找到 Aegisub 安装目录</h3>
+                    <ul>
+                        <li>右键点击 Aegisub 桌面快捷方式</li>
+                        <li>选择 <span class="highlight">打开文件位置</span></li>
+                        <li>这就是 Aegisub 的安装根目录</li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>步骤 2：定位脚本目录</h3>
+                    <p>在 Aegisub 安装目录下，逐级打开文件夹：</p>
+                    <div class="code-box">Aegisub 根目录
+└── automation
+    └── autoload          ← 脚本需要放在这里</div>
+                    <p style="margin-top:15px;">完整路径示例：</p>
+                    <div class="code-box">C:\Program Files\Aegisub\automation\autoload</div>
+                    <p style="margin-top:10px;">或</p>
+                    <div class="code-box">D:\Program Files\Aegisub\automation\autoload</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第8页：脚本安装步骤 -->
+        <div class="slide">
+            <h2>📦 脚本安装步骤（续）</h2>
+            <div class="content">
+                <div class="step-box">
+                    <h3>步骤 3：复制脚本文件</h3>
+                    <ul>
+                        <li>将 <span class="highlight">ffmpeg_cut_complete.lua </span> 脚本文件复制到 <code>autoload</code> 文件夹</li>
+                        <li>同时也将<span class="highlight">complete_exporter.exe</span> 复制到 <code>autoload</code> 文件夹</li>
+                        <li>保持文件名不变</li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>步骤 4：重启 Aegisub</h3>
+                    <ul>
+                        <li>关闭 Aegisub（如果正在运行）</li>
+                        <li>重新启动 Aegisub</li>
+                        <li>点击菜单：<span class="highlight">自动化</span></li>
+                        <li>检查是否出现 <span class="highlight">导出选中字幕行对应的音频视频</span></li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>✅ 安装成功标志</h3>
+                    <p>在 Aegisub 的<span class="highlight">自动化</span>菜单中看到脚本名称，说明安装成功！</p>
+                </div>
+                <div class="step-box">
+                    <h3>❌ 如果菜单中没有显示</h3>
+                    <ul>
+                        <li>检查文件是否放在正确的 <code>autoload</code> 目录</li>
+                        <li>确认文件扩展名是 <code>.lua</code></li>
+                        <li>检查是否有错误提示（查看 Aegisub 日志）</li>
+                        <li>确保所有依赖文件都已复制</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第9页：软件功能介绍 -->
+        <div class="slide">
+            <h2>🎯 软件功能介绍</h2>
+            <div class="content">
+                <div class="step-box">
+                    <h3>核心功能</h3>
+                    <p>本软件是一个 Aegisub 自动化脚本，可以根据字幕时间轴自动切割视频：</p>
+                    <ul>
+                        <li>📌 <strong>按字幕切割</strong>：根据字幕文件自动切割视频片段</li>
+                        <li>⚡ <strong>快速导出</strong>：支持快速编码模式和重新编码模式</li>
+                        <li>🎬 <strong>自动合并</strong>：可选择将片段自动合并成完整视频</li>
+                        <li>📝 <strong>字幕生成</strong>：为每个片段和合并视频生成对应字幕</li>
+                        <li>🎨 <strong>参数自定义</strong>：支持调整编码质量、分辨率等</li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>适用场景</h3>
+                    <ul>
+                        <li>🎓 制作语言学习材料（按句切割）</li>
+                        <li>📺 提取视频精彩片段</li>
+                        <li>🎵 制作配音素材</li>
+                        <li>✂️ 批量处理视频内容</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第8页：基本操作流程 -->
+        <div class="slide">
+            <h2>📝 基本操作流程</h2>
+            <div class="content">
+                <div class="step-box">
+                    <h3>步骤 1：在 Aegisub 中打开视频和字幕</h3>
+                    <ul>
+                        <li>启动 Aegisub</li>
+                        <li>打开视频文件：<span class="highlight">视频 → 打开视频</span></li>
+                        <li>加载或创建字幕文件</li>
+                        <li>如果有现成字幕和视频，则应先加载字幕再加载视频！！！</li>
+                        <li>如果有现成字幕和视频，则应先加载字幕再加载视频！！！</li>
+                        <li>如果有现成字幕和视频，则应先加载字幕再加载视频！！！</li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>步骤 2：选择要导出的字幕行</h3>
+                    <ul>
+                        <li>在字幕列表中，按住 <span class="highlight">Ctrl</span> 或 <span class="highlight">Shift</span> 选择多行</li>
+                        <li>或使用 <span class="highlight">Ctrl + A</span> 全选</li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>步骤 3：运行导出脚本</h3>
+                    <ul>
+                        <li>点击菜单：<span class="highlight">自动化 → 字幕切割导出工具</span></li>
+                        <li>或使用快捷键（如果已配置）</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第9页：导出设置 -->
+        <div class="slide">
+            <h2>⚙️ 导出设置详解</h2>
+            <div class="content">
+                <div class="step-box">
+                    <h3>步骤 4：配置导出参数</h3>
+                    <p>在弹出的对话框中设置：</p>
+                    <ul>
+                        <li><strong>输出目录</strong>：选择片段保存位置</li>
+                        <li><strong>文件命名</strong>：
+                            <ul style="margin-left:20px;">
+                                <li>按序号：1.mp4, 2.mp4...</li>
+                                <li>序号+字幕：1_字幕内容.mp4</li>
+                            </ul>
+                        </li>
+                        <li><strong>导出模式</strong>：快速编码模式 或 重新编码模式</li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>步骤 5：开始导出</h3>
+                    <ul>
+                        <li>检查设置无误后，点击 <span class="highlight">开始导出</span></li>
+                        <li>等待处理完成（进度条会显示进度）</li>
+                        <li>完成后会在输出目录生成所有文件</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第10页：三种导出模式对比 -->
+        <div class="slide">
+            <h2>⚡ 导出模式详解</h2>
+            <div class="content">
+                <div class="step-box">
+                    <h3>模式对比</h3>
+                    <table class="comparison-table">
+                        <tr>
+                            <th>特性</th>
+                            <th>快速编码模式</th>
+                            <th>重新编码模式</th>
+                            <th>连续切割模式</th>
+                            <th>跟读练习模式</th>
+                        </tr>
+                        <tr>
+                            <td><strong>切割方式</strong></td>
+                            <td>每条字幕单独切割</td>
+                            <td>每条字幕单独切割</td>
+                            <td>首尾时间范围连续切割</td>
+                            <td>每条字幕重复+停顿</td>
+                        </tr>
+                        <tr>
+                            <td><strong>输出文件</strong></td>
+                            <td>多个片段 + 合并文件</td>
+                            <td>多个片段 + 合并文件</td>
+                            <td>单个连续片段</td>
+                            <td>单个跟读练习文件</td>
+                        </tr>
+                        <tr>
+                            <td><strong>速度</strong></td>
+                            <td>⚡ 快速</td>
+                            <td>🐢 较慢</td>
+                            <td>🐢 较慢</td>
+                            <td>🐢 较慢</td>
+                        </tr>
+                        <tr>
+                            <td><strong>质量</strong></td>
+                            <td>良好（固定参数）</td>
+                            <td>可自定义</td>
+                            <td>可自定义</td>
+                            <td>可自定义</td>
+                        </tr>
+                        <tr>
+                            <td><strong>字幕范围</strong></td>
+                            <td>只包含选中字幕</td>
+                            <td>只包含选中字幕</td>
+                            <td>包含时间范围内所有字幕</td>
+                            <td>只包含选中字幕</td>
+                        </tr>
+                        <tr>
+                            <td><strong>适用场景</strong></td>
+                            <td>分散片段导出</td>
+                            <td>高质量片段导出</td>
+                            <td>连续片段完整导出</td>
+                            <td>语言学习跟读练习</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第11页：连续切割模式详解 -->
+        <div class="slide">
+            <h2>🎬 连续切割模式详解</h2>
+            <div class="content">
+                <div class="step-box">
+                    <h3>什么是连续切割模式？</h3>
+                    <p>连续切割模式会从<span class="highlight">第一条选中字幕的开始时间</span>到<span class="highlight">最后一条选中字幕的结束时间</span>，切割出一个<strong>完整的连续片段</strong>，包含中间所有内容（即使没有字幕）。</p>
+                </div>
+                <div class="step-box">
+                    <h3>与片段模式的区别</h3>
+                    <div class="code-box">【片段模式示例】
+选中字幕：第1条(2s-5s)、第3条(10s-15s)、第5条(20s-25s)
+输出文件：01.mp4(3秒)、02.mp4(5秒)、03.mp4(5秒)
+字幕内容：只有3条选中的字幕
+
+【连续模式示例】
+选中字幕：第1条(2s-5s)、第5条(20s-25s) ← 只需选首尾
+输出文件：01.mp4(23秒，从2s到25s的完整内容)
+字幕内容：自动包含时间范围内的所有字幕（5条）</div>
+                </div>
+                <div class="step-box">
+                    <h3>核心特点</h3>
+                    <ul>
+                        <li>✅ <strong>自动收集字幕</strong>：自动提取时间范围内的所有字幕</li>
+                        <li>✅ <strong>完整内容</strong>：保留中间所有视频内容（包括空白部分）</li>
+                        <li>✅ <strong>相对时间轴</strong>：字幕从00:00:00开始，与视频完美对齐</li>
+                        <li>✅ <strong>简化操作</strong>：只需选中首尾字幕即可</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第12页：连续切割模式使用步骤 -->
+        <div class="slide">
+            <h2>📝 连续切割模式使用步骤</h2>
+            <div class="content">
+                <div class="step-box">
+                    <h3>步骤 1：选择首尾字幕</h3>
+                    <ul>
+                        <li>在字幕列表中选中<span class="highlight">第一条</span>需要的字幕</li>
+                        <li>按住 <span class="highlight">Ctrl</span>，点击<span class="highlight">最后一条</span>需要的字幕</li>
+                        <li>也可以选中中间的字幕，但只有首尾时间起作用</li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>步骤 2：运行连续切割模式</h3>
+                    <ul>
+                        <li>点击菜单：<span class="highlight">自动化 → 导出选中字幕行对应的音频视频 → 3. 连续切割模式</span></li>
+                        <li>软件会自动收集时间范围内的所有字幕</li>
+                        <li>弹出对话框显示：<span class="highlight">收集到 X 条字幕</span></li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>步骤 3：设置编码参数</h3>
+                    <ul>
+                        <li><strong>CRF值</strong>：0-51，推荐18-28（默认24）</li>
+                        <li><strong>编码预设</strong>：veryfast/fast/medium/slow（默认veryfast）</li>
+                        <li>点击<span class="highlight">确定</span>开始处理</li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>步骤 4：查看输出文件</h3>
+                    <div class="code-box">输出目录/
+├── 01.mp4          （连续视频片段）
+├── 01.mp3          （连续音频片段）
+├── 01.srt          （相对时间字幕，从00:00:00开始）
+├── 视频名_video.mp4 （与01.mp4相同）
+├── 视频名_audio.mp3 （与01.mp3相同）
+└── 视频名_video.srt （与01.srt相同）</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第13页：连续切割模式适用场景 -->
+        <div class="slide">
+            <h2>🎯 连续切割模式适用场景</h2>
+            <div class="content">
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>📺 完整片段提取</h4>
+                        <p>需要提取某个时间段的完整视频内容，包括对话和间隙</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🎓 学习材料制作</h4>
+                        <p>制作包含完整语境的学习视频，保留对话之间的停顿</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🎬 剧情片段</h4>
+                        <p>提取连续剧情片段，保持故事完整性</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🎤 对话场景</h4>
+                        <p>保留对话的自然节奏和停顿</p>
+                    </div>
+                </div>
+                <div class="step-box">
+                    <h3>使用建议</h3>
+                    <ul>
+                        <li>💡 <strong>完整场景</strong>：适合提取完整场景，不适合跳跃式片段</li>
+                        <li>💡 <strong>时间范围选择</strong>：只需选中首尾字幕，软件自动处理中间内容</li>
+                        <li>💡 <strong>字幕精准度</strong>：字幕时间轴自动转换为相对时间，与视频完美对齐</li>
+                        <li>💡 <strong>质量控制</strong>：使用自定义CRF和preset参数控制输出质量</li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>注意事项</h3>
+                    <ul>
+                        <li>⚠️ 连续模式会保留从首字幕到尾字幕的所有视频内容，文件体积可能较大</li>
+                        <li>⚠️ 字幕必须完全在时间范围内（开始时间 >= 首字幕开始 且 结束时间 <= 尾字幕结束）</li>
+                        <li>⚠️ 即使只选中首尾2条字幕，也会自动收集中间所有符合条件的字幕</li>
+                        <li>⚠️ 如果时间范围内没有任何字幕（极少情况），会提示错误</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第14页：跟读练习模式详解 -->
+        <div class="slide">
+            <h2>🎓 跟读练习模式详解</h2>
+            <div class="content">
+                <div class="step-box">
+                    <h3>什么是跟读练习模式？</h3>
+                    <p>跟读练习模式（Shadowing Mode）专为<span class="highlight">语言学习</span>设计，将每个字幕片段<strong>重复播放N次</strong>，并在片段之间插入<strong>停顿时间</strong>，方便学习者跟读模仿。</p>
+                </div>
+                <div class="step-box">
+                    <h3>核心功能</h3>
+                    <ul>
+                        <li>🔁 <strong>片段重复</strong>：每个句子可重复播放1-10次</li>
+                        <li>⏸️ <strong>智能停顿</strong>：自动插入停顿时间供跟读</li>
+                        <li>📝 <strong>字幕控制</strong>：可选择停顿时是否显示字幕</li>
+                        <li>🎵 <strong>双格式支持</strong>：支持视频模式和纯音频模式</li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>工作流程示例</h3>
+                    <div class="code-box">原始句子：「こんにちは」(1秒)
+
+跟读模式输出（重复3次，重复间停顿，停顿2倍）：
+[播放] こんにちは (1秒)
+[停顿] 显示字幕 (2秒) ← 给学习者跟读时间
+[播放] こんにちは (1秒)
+[停顿] 显示字幕 (2秒) ← 给学习者跟读时间
+[播放] こんにちは (1秒)
+[停顿] 显示字幕 (2秒) ← 给学习者跟读时间
+[播放] 下一个句子...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第15页：跟读练习模式参数设置 -->
+        <div class="slide">
+            <h2>⚙️ 跟读练习模式参数</h2>
+            <div class="content">
+                <div class="step-box">
+                    <h3>基础参数</h3>
+                    <table class="comparison-table">
+                        <tr>
+                            <th>参数</th>
+                            <th>说明</th>
+                            <th>默认值</th>
+                            <th>推荐值</th>
+                        </tr>
+                        <tr>
+                            <td><strong>播放次数</strong></td>
+                            <td>每个片段重复播放的次数</td>
+                            <td>3次</td>
+                            <td>2-3次</td>
+                        </tr>
+                        <tr>
+                            <td><strong>重复间停顿</strong></td>
+                            <td>是否在重复之间插入停顿</td>
+                            <td>启用</td>
+                            <td>启用</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="step-box">
+                    <h3>停顿设置</h3>
+                    <table class="comparison-table">
+                        <tr>
+                            <th>参数</th>
+                            <th>说明</th>
+                            <th>默认值</th>
+                        </tr>
+                        <tr>
+                            <td><strong>停顿模式</strong></td>
+                            <td>倍数模式 或 固定秒数模式</td>
+                            <td>倍数模式</td>
+                        </tr>
+                        <tr>
+                            <td><strong>停顿倍数</strong></td>
+                            <td>句子时长的倍数（倍数模式）</td>
+                            <td>1.5倍</td>
+                        </tr>
+                        <tr>
+                            <td><strong>停顿秒数</strong></td>
+                            <td>固定停顿时长（固定模式）</td>
+                            <td>2.5秒</td>
+                        </tr>
+                        <tr>
+                            <td><strong>停顿时显示字幕</strong></td>
+                            <td>停顿期间是否显示字幕</td>
+                            <td>启用</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第16页：跟读练习模式使用步骤 -->
+        <div class="slide">
+            <h2>📝 跟读练习模式使用步骤</h2>
+            <div class="content">
+                <div class="step-box">
+                    <h3>步骤 1：选择字幕</h3>
+                    <ul>
+                        <li>在 Aegisub 中选中要练习的字幕行</li>
+                        <li>可以选择单行或多行</li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>步骤 2：启动跟读模式</h3>
+                    <ul>
+                        <li>点击菜单：<span class="highlight">自动化 → 导出选中字幕行对应的音频视频 → 4. 跟读练习</span></li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>步骤 3：配置参数</h3>
+                    <ul>
+                        <li><strong>播放次数</strong>：建议2-3次</li>
+                        <li><strong>停顿倍数</strong>：初学者用2倍，熟练者用1.5倍</li>
+                        <li><strong>停顿时显示字幕</strong>：初学者启用，进阶者禁用</li>
+                        <li><strong>CRF质量</strong>：视频模式可设置（默认24）</li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>步骤 4：查看输出</h3>
+                    <div class="code-box">输出目录/
+├── 视频名_shadowing_video.mp4  （视频模式）
+└── shadowing_audio.mp3         （音频模式）
+└── shadowing_subtitles.srt     （字幕文件）</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第17页：跟读练习模式适用场景 -->
+        <div class="slide">
+            <h2>🎯 跟读练习模式适用场景</h2>
+            <div class="content">
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>🗣️ 口语练习</h4>
+                        <p>反复听同一句话，模仿发音和语调</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>👂 听力训练</h4>
+                        <p>重复播放加深理解，提高听力水平</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📚 语言学习</h4>
+                        <p>制作个性化学习材料，随时随地练习</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🎭 配音练习</h4>
+                        <p>模仿角色台词，练习配音技巧</p>
+                    </div>
+                </div>
+                <div class="step-box">
+                    <h3>使用建议</h3>
+                    <ul>
+                        <li>💡 <strong>初学者</strong>：播放3次 + 停顿2倍 + 显示字幕</li>
+                        <li>💡 <strong>进阶者</strong>：播放2次 + 停顿1.5倍 + 不显示字幕</li>
+                        <li>💡 <strong>纯音频模式</strong>：适合通勤路上练习，节省空间</li>
+                        <li>💡 <strong>视频模式</strong>：可以观察口型和表情，学习更全面</li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>停顿倍数选择</h3>
+                    <ul>
+                        <li>🔹 <strong>1.5倍</strong>：快速练习，适合熟悉的内容</li>
+                        <li>🔹 <strong>2倍</strong>：标准练习，适合大多数场景</li>
+                        <li>🔹 <strong>2.5倍+</strong>：慢速练习，适合初学者或复杂句子</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第11页：重新编码参数详解 -->
+        <div class="slide">
+            <h2>🎛️ 重新编码参数说明</h2>
+            <div class="content">
+                <div class="step-box">
+                    <h3>CRF 值（质量控制）</h3>
+                    <ul>
+                        <li><strong>18-20</strong>：极高质量，文件较大</li>
+                        <li><strong>21-23</strong>：高质量，适合存档</li>
+                        <li><strong>24-26</strong>：良好质量，适中体积（推荐）</li>
+                        <li><strong>27-30</strong>：中等质量，文件较小</li>
+                    </ul>
+                    <p style="margin-top:10px;"><span class="highlight">数值越小，质量越高，体积越大</span></p>
+                </div>
+                <div class="step-box">
+                    <h3>Preset（编码速度）</h3>
+                    <ul>
+                        <li><strong>ultrafast/veryfast</strong>：极快，质量稍低</li>
+                        <li><strong>faster/fast</strong>：较快，质量良好</li>
+                        <li><strong>medium</strong>：平衡（默认）</li>
+                        <li><strong>slow/veryslow</strong>：很慢，质量最优</li>
+                    </ul>
+                    <p style="margin-top:10px;"><span class="highlight">速度越慢，压缩效率越高</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第12页：高级功能 -->
+        <div class="slide">
+            <h2>🚀 高级功能与技巧</h2>
+            <div class="content">
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>📦 批量处理</h4>
+                        <p>一次选择多行字幕，批量生成对应片段</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🔗 自动合并</h4>
+                        <p>切割后自动合并为完整视频，并生成完整字幕</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🎵 音频提取</h4>
+                        <p>同时生成视频和音频文件，方便单独使用</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📝 字幕同步</h4>
+                        <p>每个片段都有对应字幕文件（.srt格式）</p>
+                    </div>
+                </div>
+                <div class="step-box">
+                    <h3>使用技巧</h3>
+                    <ul>
+                        <li>💡 <strong>大文件处理</strong>：建议使用快速编码模式，避免过长等待</li>
+                        <li>💡 <strong>存档备份</strong>：使用重新编码模式，CRF设为20-22</li>
+                        <li>💡 <strong>网络分享</strong>：CRF设为26-28，减小文件体积</li>
+                        <li>💡 <strong>文件命名</strong>：选择"序号+字幕"，便于识别内容</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第13页：常见问题 - FFmpeg相关 -->
+        <div class="slide">
+            <h2>❓ 常见问题解答（FFmpeg）</h2>
+            <div class="content">
+                <div class="step-box">
+                    <h3>问题 1：提示"未找到 FFmpeg"</h3>
+                    <ul>
+                        <li>✓ 检查 FFmpeg 是否正确安装</li>
+                        <li>✓ 检查环境变量路径是否正确（必须是 bin 目录）</li>
+                        <li>✓ 重启 Aegisub 软件</li>
+                        <li>✓ 在命令行测试 <code>ffmpeg -version</code></li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>问题 2：配置后仍不可用</h3>
+                    <ul>
+                        <li>✓ 关闭所有命令行窗口后重试</li>
+                        <li>✓ 重启电脑使配置生效</li>
+                        <li>✓ 检查是否配置在"系统变量"而不是"用户变量"</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第14页：常见问题 - 软件使用相关 -->
+        <div class="slide">
+            <h2>❓ 常见问题解答（软件使用）</h2>
+            <div class="content">
+                <div class="step-box">
+                    <h3>问题 1：导出失败或卡住</h3>
+                    <ul>
+                        <li>✓ 检查视频文件路径是否包含中文或特殊字符</li>
+                        <li>✓ 确保有足够的磁盘空间</li>
+                        <li>✓ 检查输出目录是否有写入权限</li>
+                        <li>✓ 尝试使用管理员权限运行 Aegisub</li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>问题 2：音画不同步</h3>
+                    <ul>
+                        <li>✓ 使用重新编码模式而不是快速编码模式</li>
+                        <li>✓ 确保原视频本身音画同步</li>
+                        <li>✓ 检查字幕时间轴是否准确</li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>问题 3：处理速度很慢</h3>
+                    <ul>
+                        <li>✓ 切换到快速编码模式</li>
+                        <li>✓ 重新编码模式选择 faster 或 veryfast preset</li>
+                        <li>✓ 关闭其他占用资源的程序</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第15页：输出文件说明 -->
+        <div class="slide">
+            <h2>📁 输出文件结构说明</h2>
+            <div class="content">
+                <div class="step-box">
+                    <h3>输出目录结构示例</h3>
+                    <div class="code-box">视频名称_20250103_120000/      （根目录，带时间戳）
+├── 视频名称_video.mp4        （合并后的完整视频）
+├── 视频名称_audio.mp3        （合并后的完整音频）
+├── 视频名称_video.srt        （视频版字幕）
+├── 视频名称_audio.srt        （音频版字幕）
+└── 视频名称/                  （片段目录）
+    ├── 1.mp4                  （视频片段1）
+    ├── 1.mp3                  （音频片段1）
+    ├── 1.srt                  （字幕片段1）
+    ├── 2.mp4
+    ├── 2.mp3
+    ├── 2.srt
+    └── ...</div>
+                </div>
+                <div class="step-box">
+                    <h3>文件说明</h3>
+                    <ul>
+                        <li><strong>视频片段</strong>：根据每行字幕切割的独立视频</li>
+                        <li><strong>音频片段</strong>：对应的音频文件</li>
+                        <li><strong>字幕片段</strong>：单个片段的字幕文件</li>
+                        <li><strong>合并文件</strong>：所有片段按顺序合并的完整文件</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第16页：使用建议 -->
+        <div class="slide">
+            <h2>💡 使用建议与最佳实践</h2>
+            <div class="content">
+                <div class="step-box">
+                    <h3>提高效率的建议</h3>
+                    <ul>
+                        <li>📌 <strong>字幕整理</strong>：导出前检查字幕时间轴是否准确</li>
+                        <li>📌 <strong>命名规范</strong>：使用有意义的文件名，便于后续管理</li>
+                        <li>📌 <strong>批量处理</strong>：一次性选择所有需要的行，避免重复操作</li>
+                        <li>📌 <strong>备份原文件</strong>：导出前备份原始视频和字幕</li>
+                    </ul>
+                </div>
+                <div class="step-box">
+                    <h3>质量与速度的权衡</h3>
+                    <ul>
+                        <li>🎯 <strong>快速预览</strong>：快速编码模式 + 默认参数</li>
+                        <li>🎯 <strong>日常使用</strong>：重新编码模式 + CRF 24 + medium preset</li>
+                        <li>🎯 <strong>高质量存档</strong>：重新编码模式 + CRF 20 + slow preset</li>
+                        <li>🎯 <strong>网络分享</strong>：重新编码模式 + CRF 26-28 + faster preset</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第17页：总结 -->
+        <div class="slide">
+            <h2>📝 使用流程总结</h2>
+            <div class="content">
+                <div class="step-box">
+                    <h3>完整流程回顾</h3>
+                    <ol class="numbered-list">
+                        <li><strong>环境准备</strong>：下载并配置 FFmpeg 环境变量</li>
+                        <li><strong>安装脚本</strong>：将ffmpeg_cut_complete.lua和complete_exporter.exe文件放入 Aegisub\automation\autoload 目录</li>
+                        <li><strong>重启软件</strong>：重启 Aegisub，确认自动化菜单中出现脚本</li>
+                        <li><strong>打开文件</strong>：在 Aegisub 中打开视频和字幕；如果有现成字幕和视频，则应先加载字幕再加载视频！！！</li>
+                        <li><strong>选择字幕</strong>：选中需要导出的字幕行</li>
+                        <li><strong>运行脚本</strong>：自动化 → 字幕切割导出工具</li>
+                        <li><strong>配置参数</strong>：选择导出模式和相关设置</li>
+                        <li><strong>开始导出</strong>：等待处理完成</li>
+                        <li><strong>查看结果</strong>：在输出目录查看生成的文件</li>
+                    </ol>
+                </div>
+                <div class="step-box">
+                    <h3>🎉 完成配置后你可以：</h3>
+                    <ul>
+                        <li>快速批量切割视频片段</li>
+                        <li>为每个片段自动生成字幕</li>
+                        <li>自动合并片段为完整视频</li>
+                        <li>灵活控制导出质量和速度</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第18页：结束页 -->
+        <div class="slide cover">
+            <div class="icon">🎉</div>
+            <h1>祝您使用愉快！</h1>
+            <p>感谢使用 Aegisub 字幕切割导出工具</p>
+            <p style="margin-top: 30px; font-size: 0.9em;">如有问题，请查阅本教程或联系技术支持</p>
+        </div>
+    </div>
+
+    <!-- 目录按钮 -->
+    <button class="toc-btn" onclick="toggleTOC()">📑 目录</button>
+
+    <!-- 目录遮罩层 -->
+    <div class="toc-overlay" id="tocOverlay" onclick="toggleTOC()"></div>
+
+    <!-- 目录面板 -->
+    <div class="toc-panel" id="tocPanel">
+        <button class="toc-close" onclick="toggleTOC()">×</button>
+        <h3>📋 目录导航</h3>
+        <div id="tocContent"></div>
+    </div>
+
+    <!-- 导航按钮 -->
+    <div class="nav-buttons">
+        <button class="nav-btn" id="prevBtn" onclick="changeSlide(-1)">← 上一页</button>
+        <button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">下一页 →</button>
+    </div>
+
+    <!-- 页码指示器 -->
+    <div class="page-indicator" id="pageIndicator">1 / 25</div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        function showSlide(n) {
+            // 移除所有active类
+            slides.forEach(slide => slide.classList.remove('active'));
+
+            // 处理边界
+            if (n >= totalSlides) {
+                currentSlide = totalSlides - 1;
+            } else if (n < 0) {
+                currentSlide = 0;
+            } else {
+                currentSlide = n;
+            }
+
+            // 显示当前幻灯片
+            slides[currentSlide].classList.add('active');
+
+            // 更新按钮状态
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+
+            // 更新页码
+            document.getElementById('pageIndicator').textContent = `${currentSlide + 1} / ${totalSlides}`;
+        }
+
+        function changeSlide(direction) {
+            showSlide(currentSlide + direction);
+        }
+
+        // 键盘导航
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowLeft') {
+                changeSlide(-1);
+            } else if (e.key === 'ArrowRight' || e.key === ' ') {
+                changeSlide(1);
+            }
+        });
+
+        // 目录功能
+        function toggleTOC() {
+            const panel = document.getElementById('tocPanel');
+            const overlay = document.getElementById('tocOverlay');
+            const btn = document.querySelector('.toc-btn');
+
+            panel.classList.toggle('active');
+            overlay.classList.toggle('active');
+
+            // 面板展开时隐藏按钮
+            if (panel.classList.contains('active')) {
+                btn.style.opacity = '0';
+                btn.style.pointerEvents = 'none';
+            } else {
+                btn.style.opacity = '1';
+                btn.style.pointerEvents = 'auto';
+            }
+        }
+
+        function jumpToSlide(index) {
+            showSlide(index);
+            toggleTOC();
+        }
+
+        function generateTOC() {
+            const tocContent = document.getElementById('tocContent');
+            const tableOfContents = [
+                { index: 0, title: '封面' },
+                { index: 1, title: '教程目录' },
+                { index: 2, title: 'FFmpeg 环境准备' },
+                { index: 3, title: '下载 FFmpeg' },
+                { index: 4, title: '配置环境变量' },
+                { index: 5, title: '验证 FFmpeg 配置' },
+                { index: 6, title: '脚本安装' },
+                { index: 7, title: '脚本安装步骤' },
+                { index: 8, title: '软件功能介绍' },
+                { index: 9, title: '基本操作流程' },
+                { index: 10, title: '导出设置详解' },
+                { index: 11, title: '导出模式详解' },
+                { index: 12, title: '连续切割模式详解' },
+                { index: 13, title: '连续切割模式使用步骤' },
+                { index: 14, title: '连续切割模式适用场景' },
+                { index: 15, title: '跟读练习模式详解' },
+                { index: 16, title: '跟读练习模式参数' },
+                { index: 17, title: '跟读练习模式使用步骤' },
+                { index: 18, title: '跟读练习模式适用场景' },
+                { index: 19, title: '重新编码参数说明' },
+                { index: 20, title: '高级功能与技巧' },
+                { index: 21, title: '常见问题解答（FFmpeg）' },
+                { index: 22, title: '常见问题解答（软件使用）' },
+                { index: 23, title: '输出文件结构说明' },
+                { index: 24, title: '使用建议与最佳实践' },
+                { index: 25, title: '使用流程总结' },
+                { index: 26, title: '结束页' }
+            ];
+
+            tocContent.innerHTML = tableOfContents.map(item =>
+                `<div class="toc-item" onclick="jumpToSlide(${item.index})" data-slide="${item.index}">
+                    ${item.index + 1}. ${item.title}
+                </div>`
+            ).join('');
+        }
+
+        function updateTOCHighlight() {
+            const tocItems = document.querySelectorAll('.toc-item');
+            tocItems.forEach(item => {
+                const slideIndex = parseInt(item.getAttribute('data-slide'));
+                if (slideIndex === currentSlide) {
+                    item.classList.add('current');
+                } else {
+                    item.classList.remove('current');
+                }
+            });
+        }
+
+        // 修改showSlide函数，添加目录高亮更新
+        function showSlide(n) {
+            // 移除所有active类
+            slides.forEach(slide => slide.classList.remove('active'));
+
+            // 处理边界
+            if (n >= totalSlides) {
+                currentSlide = totalSlides - 1;
+            } else if (n < 0) {
+                currentSlide = 0;
+            } else {
+                currentSlide = n;
+            }
+
+            // 显示当前幻灯片
+            slides[currentSlide].classList.add('active');
+
+            // 更新按钮状态
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+
+            // 更新页码
+            document.getElementById('pageIndicator').textContent = `${currentSlide + 1} / ${totalSlides}`;
+
+            // 更新目录高亮
+            updateTOCHighlight();
+        }
+
+        // 初始化
+        generateTOC();
+        showSlide(0);
+    </script>
+</body>
+</html>
